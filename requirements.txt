@@ -1,0 +1,9 @@
+scapy
+paramiko
+netmiko
+psutil
+requests
+beautifulsoup4
+pwntools
+cryptography
+impacket
