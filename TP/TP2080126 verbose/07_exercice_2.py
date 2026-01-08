@@ -5,14 +5,27 @@ Objectifs:
 - Itérer sur une liste d'équipements et tenter une connexion SSH.
 - Illustrer la gestion des erreurs (timeout, autres exceptions).
 - Fournir une verbosité utile et un bref récapitulatif final.
+- Utiliser .env pour les credentials communs.
 """
+import os
+import getpass
+from pathlib import Path
 from netmiko import ConnectHandler
 from netmiko.exceptions import NetmikoTimeoutException
+from dotenv import load_dotenv
+
+# Charge le fichier .env s'il existe dans le même répertoire que ce script
+script_dir = Path(__file__).parent
+dotenv_path = script_dir / ".env"
+if dotenv_path.exists():
+    load_dotenv(dotenv_path)
+    print(f"[INFO] Fichier .env chargé depuis {dotenv_path}")
 
 parc_reseau = ["192.168.10.11", "192.168.10.172", "192.168.10.133"]
 
-username = "admin"
-password = "admin"
+# Credentials depuis .env ou prompts
+username = os.getenv("NETMIKO_USER") or input("Nom d'utilisateur: ").strip() or "admin"
+password = os.getenv("NETMIKO_PASS") or getpass.getpass("Mot de passe: ") or "admin"
 
 VERBOSE = True
 

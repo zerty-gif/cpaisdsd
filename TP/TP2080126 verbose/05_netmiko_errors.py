@@ -6,24 +6,41 @@ Objectifs pédagogiques:
 - Apprendre à fournir des messages d'erreur utiles et actionnables.
 
 Scénario:
-- Hôte volontairement erroné pour déclencher un timeout.
+- Test de connexion avec gestion des erreurs de timeout et d'authentification.
 - Affichage clair du type d'erreur rencontré.
+- Credentials depuis .env ou prompts interactifs.
 """
+import os
+import getpass
+from pathlib import Path
 from netmiko import ConnectHandler
 from netmiko.exceptions import NetmikoTimeoutException, NetmikoAuthenticationException
+from dotenv import load_dotenv
 
-cisco_router = {
-    'device_type': 'cisco_ios',
-    'host': '192.168.10.122', # IP erronée pour tester le timeout
-    'username': 'admin',
-    'password': 'admin',
-}
+# Charge le fichier .env s'il existe dans le même répertoire que ce script
+script_dir = Path(__file__).parent
+dotenv_path = script_dir / ".env"
+if dotenv_path.exists():
+    load_dotenv(dotenv_path)
+    print(f"[INFO] Fichier .env chargé depuis {dotenv_path}")
 
 VERBOSE = True
 
 def log(msg: str) -> None:
     if VERBOSE:
         print(f"[VERBOSE] {msg}")
+
+# Récupération des paramètres via ENV ou prompts
+host = os.getenv("NETMIKO_HOST") or input("Adresse IP/DNS du routeur: ").strip() or "172.16.86.161"
+username = os.getenv("NETMIKO_USER") or input("Nom d'utilisateur: ").strip() or "admin"
+password = os.getenv("NETMIKO_PASS") or getpass.getpass("Mot de passe: ") or "admin"
+
+cisco_router = {
+    'device_type': 'cisco_ios',
+    'host': host,
+    'username': username,
+    'password': password,
+}
 
 try:
     print(f"Connexion à {cisco_router['host']}...")

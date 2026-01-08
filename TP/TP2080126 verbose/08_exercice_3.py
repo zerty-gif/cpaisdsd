@@ -2,16 +2,27 @@
 Exercice — Prompt utilisateur et extraction de la version logicielle
 
 Objectifs:
-- Demander à l'utilisateur les paramètres SSH.
+- Demander à l'utilisateur les paramètres SSH (ou utiliser .env).
 - Exécuter `show version`.
 - Extraire une ligne contenant "Version" et afficher un extrait pertinent.
 
 Approche pédagogique:
 - Rendre le déroulé explicite avec des messages verboses.
 - Prévenir l'utilisateur en cas d'absence de correspondance.
+- Utiliser .env pour éviter de retaper les credentials.
 """
-from netmiko import ConnectHandler
+import os
 import getpass
+from pathlib import Path
+from netmiko import ConnectHandler
+from dotenv import load_dotenv
+
+# Charge le fichier .env s'il existe dans le même répertoire que ce script
+script_dir = Path(__file__).parent
+dotenv_path = script_dir / ".env"
+if dotenv_path.exists():
+    load_dotenv(dotenv_path)
+    print(f"[INFO] Fichier .env chargé depuis {dotenv_path}")
 
 VERBOSE = True
 
@@ -19,9 +30,9 @@ def log(msg: str) -> None:
     if VERBOSE:
         print(f"[VERBOSE] {msg}")
 
-ip_addr = input("Entrez l'adresse IP du routeur : ")
-user = input("Nom d'utilisateur: ")
-pwd = getpass.getpass("Mot de passe SSH : ")
+ip_addr = os.getenv("NETMIKO_HOST") or input("Entrez l'adresse IP du routeur : ").strip()
+user = os.getenv("NETMIKO_USER") or input("Nom d'utilisateur: ").strip()
+pwd = os.getenv("NETMIKO_PASS") or getpass.getpass("Mot de passe SSH : ")
 log(f"Cible: {ip_addr}, Utilisateur: {user}")
 
 device = {
