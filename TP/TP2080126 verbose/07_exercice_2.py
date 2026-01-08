@@ -1,6 +1,10 @@
 """
-Slide 20 - Exercice 2
-Boucle sur une liste d'IPs avec gestion d'erreurs.
+Exercice — Parcours d'un parc d'IPs avec gestion d'erreurs
+
+Objectifs:
+- Itérer sur une liste d'équipements et tenter une connexion SSH.
+- Illustrer la gestion des erreurs (timeout, autres exceptions).
+- Fournir une verbosité utile et un bref récapitulatif final.
 """
 from netmiko import ConnectHandler
 from netmiko.exceptions import NetmikoTimeoutException
@@ -9,6 +13,15 @@ parc_reseau = ["192.168.10.11", "192.168.10.172", "192.168.10.133"]
 
 username = "admin"
 password = "admin"
+
+VERBOSE = True
+
+def log(msg: str) -> None:
+    if VERBOSE:
+        print(f"[VERBOSE] {msg}")
+
+succès = []
+échecs = []
 
 for ip in parc_reseau:
     print(f"\n--- Tentative sur {ip} ---")
@@ -21,11 +34,21 @@ for ip in parc_reseau:
     }
 
     try:
+        log("Tentative d'ouverture de session SSH...")
         with ConnectHandler(**device) as net_connect:
             print(f"Connexion réussie à {ip}")
+            succès.append(ip)
             # On pourrait ajouter des commandes ici
             
     except NetmikoTimeoutException:
         print("Échec de connexion (Timeout)")
+        échecs.append((ip, "timeout"))
     except Exception as e:
         print(f"Autre erreur: {e}")
+        échecs.append((ip, str(e)))
+
+print("\n=== Récapitulatif ===")
+print(f"Succès: {len(succès)} -> {', '.join(succès) if succès else 'aucun'}")
+print(f"Échecs: {len(échecs)}")
+for ip, err in échecs:
+    print(f" - {ip}: {err}")
