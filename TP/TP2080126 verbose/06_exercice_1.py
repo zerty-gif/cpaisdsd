@@ -61,5 +61,7 @@ try:
         if not found:
             print("Uptime introuvable dans la sortie.")
 
+        print (output)
+
 except Exception as e:
     print(f"Erreur lors de la connexion : {e}")

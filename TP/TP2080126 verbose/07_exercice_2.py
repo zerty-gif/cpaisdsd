@@ -21,7 +21,7 @@ if dotenv_path.exists():
     load_dotenv(dotenv_path)
     print(f"[INFO] Fichier .env chargé depuis {dotenv_path}")
 
-parc_reseau = ["192.168.10.11", "192.168.10.172", "192.168.10.133"]
+parc_reseau = ["172.16.86.160", "172.16.86.161", "172.16.86.162"]
 
 # Credentials depuis .env ou prompts
 username = os.getenv("NETMIKO_USER") or input("Nom d'utilisateur: ").strip() or "admin"
