@@ -81,6 +81,7 @@ Exception States:
   - OSError: Network interface down or routing table misconfiguration
 
 Author: ANDCS
+Contact: andcs@mailbox.org
 License: See LICENSE.md
 """
 

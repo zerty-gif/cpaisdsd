@@ -155,7 +155,8 @@ Exception Hierarchy:
    - Insufficient filesystem permissions for backup file creation
    - Target directory not writable by effective UID
 
-Author: Expert Network Analyst
+Author: ANDCS
+Contact: andcs@mailbox.org
 Description: Multi-device Cisco IOS configuration backup orchestration
 """
 
