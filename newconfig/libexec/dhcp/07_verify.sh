@@ -155,7 +155,7 @@ verify_configuration() {
         IFS=':' read -r interface network netmask pool_start pool_end host_address gateway dns_primary dns_secondary <<< "$scope"
         
         # Skip if already verified
-        if [[ -n "${verified_interfaces[$interface]}" ]]; then
+        if [[ -v verified_interfaces[$interface] ]]; then
             continue
         fi
         verified_interfaces["$interface"]=1

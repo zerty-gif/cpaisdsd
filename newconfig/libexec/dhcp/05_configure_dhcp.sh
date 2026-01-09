@@ -158,8 +158,10 @@ configure_dhcp_server() {
     # Kea's default configuration directory is /etc/kea/
     # The main DHCP4 configuration file is kea-dhcp4.conf
     #
-    local kea_config="/etc/kea/kea-dhcp4.conf"
-    local kea_dir="/etc/kea"
+    # Allow overriding destination directory for debugging (non-root runs)
+    # If KEA_DIR is set in environment, write config there; else use /etc/kea
+    local kea_dir="${KEA_DIR:-/etc/kea}"
+    local kea_config="${kea_dir}/kea-dhcp4.conf"
     
     # ─────────────────────────────────────────────────────────────────────────
     # ENSURE KEA CONFIGURATION DIRECTORY EXISTS
@@ -223,7 +225,7 @@ configure_dhcp_server() {
         IFS=':' read -r interface network netmask pool_start pool_end host_address gateway dns_primary dns_secondary <<< "$scope"
         
         # Add to unique interfaces if not already present
-        if [[ -z "${unique_interfaces[$interface]}" ]]; then
+        if [[ ! -v unique_interfaces[$interface] ]]; then
             unique_interfaces["$interface"]=1
             
             # Build the interface list string for JSON
@@ -296,35 +298,29 @@ configure_dhcp_server() {
         # The heredoc content is indented for readability in the final config.
         #
         subnet_json="${subnet_json}
+    {
+        \"comment\": \"Subnet ${subnet_id}: ${network}/${cidr} on ${interface}\",
+        \"id\": ${subnet_id},
+        \"subnet\": \"${network}/${cidr}\",
+        \"pools\": [
         {
-            \"comment\": \"Subnet ${subnet_id}: ${network}/${cidr} on ${interface}\",
-            \"id\": ${subnet_id},
-            \"subnet\": \"${network}/${cidr}\",
-            \"interface\": \"${interface}\",
-            \"pools\": [
-                {
-                    \"pool\": \"${pool_start} - ${pool_end}\",
-                    \"comment\": \"Address pool for ${interface}\"
-                }
-            ],
-            \"option-data\": [
-                {
-                    \"name\": \"routers\",
-                    \"data\": \"${gateway}\",
-                    \"comment\": \"Default gateway (RFC 2132, Option 3)\"
-                },
-                {
-                    \"name\": \"domain-name-servers\",
-                    \"data\": \"${dns_primary}, ${dns_secondary}\",
-                    \"comment\": \"DNS servers (RFC 2132, Option 6)\"
-                },
-                {
-                    \"name\": \"subnet-mask\",
-                    \"data\": \"${netmask}\",
-                    \"comment\": \"Subnet mask (RFC 2132, Option 1)\"
-                }
-            ]
-        }"
+            \"pool\": \"${pool_start}-${pool_end}\",
+            \"comment\": \"Address pool for ${interface}\"
+        }
+        ],
+        \"option-data\": [
+        {
+            \"name\": \"routers\",
+            \"data\": \"${gateway}\",
+            \"comment\": \"Default gateway (RFC 2132, Option 3)\"
+        },
+        {
+            \"name\": \"domain-name-servers\",
+            \"data\": \"${dns_primary}, ${dns_secondary}\",
+            \"comment\": \"DNS servers (RFC 2132, Option 6)\"
+        }
+        ]
+    }"
         
         info "Generated subnet #${subnet_id}: ${network}/${cidr}"
         table_row "Interface" "$interface"
@@ -415,6 +411,7 @@ configure_dhcp_server() {
         //
         "lease-database": {
             "type": "memfile",
+            "name": "/var/lib/kea/dhcp4.leases",
             "lfc-interval": 3600,
             "persist": true
         },
@@ -517,7 +514,7 @@ EOF
     # Mode 640: Owner (root) can read/write, group (kea) can read.
     #
     progress "Setting file permissions..."
-    chmod 644 "$kea_config"
+    chmod 644 "$kea_config" 2>/dev/null || true
     success "Permissions set: 644 (rw-r--r--)"
     echo ""
     
@@ -548,12 +545,13 @@ EOF
     
     # Check if kea-dhcp4 is available
     if command -v kea-dhcp4 &> /dev/null; then
-        # Run configuration test
-        if kea-dhcp4 -t "$kea_config" 2>/dev/null; then
+        # Run configuration test and show output to aid debugging
+        if output=$(kea-dhcp4 -t "$kea_config" 2>&1); then
             success "Configuration syntax validated successfully"
         else
-            warning "Configuration validation failed or Kea not fully installed"
-            warning "Please verify the configuration manually after installation"
+            warning "Configuration validation failed. Details:"
+            echo "$output"
+            warning "Please review the above errors and configuration file."
         fi
     else
         warning "kea-dhcp4 command not found - skipping syntax validation"

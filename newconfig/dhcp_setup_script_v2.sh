@@ -227,6 +227,11 @@ check_root() {
     # Root user has EUID of 0.
     #
     if [[ $EUID -ne 0 ]]; then
+        # Allow SAFE_MODE to bypass root requirement for debugging
+        if [[ "${SAFE_MODE:-0}" == "1" ]]; then
+            warning "Running in SAFE_MODE without root: interface changes will be skipped"
+            return 0
+        fi
         error "This script must be run as root"
         echo ""
         info "Usage: sudo $0"
@@ -320,7 +325,11 @@ main() {
     # Assign static IP addresses to all interfaces defined in scopes.
     # This is required before the DHCP server can operate.
     #
-    configure_network_interfaces
+    if [[ "${SAFE_MODE:-0}" == "1" ]]; then
+        warning "SAFE_MODE enabled: skipping network interface configuration"
+    else
+        configure_network_interfaces
+    fi
     
     # ─────────────────────────────────────────────────────────────────────────
     # STEP 5: GENERATE KEA DHCP4 CONFIGURATION

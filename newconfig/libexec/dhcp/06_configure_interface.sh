@@ -198,7 +198,7 @@ configure_network_interfaces() {
         # This handles cases where multiple scopes use the same interface
         # (not typical, but possible in advanced configurations).
         #
-        if [[ -n "${configured_interfaces[$interface]}" ]]; then
+        if [[ -v configured_interfaces[$interface] ]]; then
             debug "Interface $interface already configured, skipping"
             continue
         fi
