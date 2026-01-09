@@ -346,7 +346,14 @@ main() {
     # Check that everything is properly configured.
     # This catches issues before the user tries to start the service.
     #
-    verify_configuration
+    # In SAFE_MODE, verification failures are expected (no root, interfaces down),
+    # so we don't exit on failure.
+    #
+    if [[ "${SAFE_MODE:-0}" == "1" ]]; then
+        verify_configuration || true
+    else
+        verify_configuration
+    fi
     
     # ─────────────────────────────────────────────────────────────────────────
     # STEP 7: DISPLAY NEXT STEPS
