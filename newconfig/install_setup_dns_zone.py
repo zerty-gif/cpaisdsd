@@ -36,6 +36,7 @@ import subprocess
 import shutil
 import datetime
 import socket
+from typing import List
 
 # BIND9 Constants
 BIND_CONFIG_LOCAL = "/etc/bind/named.conf.local"
@@ -206,10 +207,32 @@ def append_zone_definition(name: str, z_type: str, filename: str):
     )
 
     try:
-        with open(BIND_CONFIG_LOCAL, "a") as f:
-            f.write(zone_config)
+        existing: List[str] = []
+        if os.path.exists(BIND_CONFIG_LOCAL):
+            with open(BIND_CONFIG_LOCAL, "r", encoding="utf-8") as f:
+                existing = f.readlines()
+
+        sanitized: List[str] = []
+        in_block = False
+        start_token = f'zone "{name}"'
+
+        for line in existing:
+            if not in_block and line.strip().startswith(start_token):
+                in_block = True
+                continue
+            if in_block and line.strip().endswith("};"):
+                in_block = False
+                continue
+            if not in_block:
+                sanitized.append(line)
+
+        sanitized.append(zone_config)
+
+        with open(BIND_CONFIG_LOCAL, "w", encoding="utf-8") as f:
+            f.writelines(sanitized)
+
         print(
-            f"[+] Configuration: Zone definition for '{name}' added to {BIND_CONFIG_LOCAL}"
+            f"[+] Configuration: Zone definition for '{name}' written idempotently to {BIND_CONFIG_LOCAL}"
         )
         return file_path
     except IOError as e:
