@@ -239,7 +239,7 @@ def create_zone_file(zone_name: str, file_path: str):
     - Exits with code 1 if the file writing fails.
     """
     ns_ip = socket.gethostbyname(socket.gethostname())  # Use actual hostname's IP
-    ns_hostname = "ns1"
+    ns_hostname = "dsd3"
 
     zone_content = f"""$TTL    604800
 @       IN      SOA     {ns_hostname}.{zone_name}. root.{zone_name}. (
