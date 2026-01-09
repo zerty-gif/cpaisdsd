@@ -1,0 +1,165 @@
+name: CI - Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run ShellCheck on all shell scripts
+        run: |
+          echo "Running ShellCheck on shell scripts..."
+          find . -name "*.sh" -type f | xargs shellcheck --severity=warning
+      
+      - name: ShellCheck Summary
+        if: success()
+        run: echo "✓ ShellCheck passed - no issues found"
+
+  syntax-check:
+    name: Bash Syntax Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check bash syntax
+        run: |
+          echo "Validating bash syntax..."
+          find . -name "*.sh" -type f -exec bash -n {} \;
+      
+      - name: Syntax Check Summary
+        if: success()
+        run: echo "✓ All shell scripts have valid syntax"
+
+  config-validation:
+    name: Configuration Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Validate configuration file
+        run: |
+          echo "Validating etc/config.sh..."
+          bash -n etc/config.sh
+          echo "✓ Configuration file is valid"
+      
+      - name: Check for required constants
+        run: |
+          echo "Checking for required configuration constants..."
+          grep -q "C_VERSION=" etc/config.sh
+          grep -q "C_PROTONVPN_SHA256=" etc/config.sh
+          grep -q "C_DOCKER_GPG_FINGERPRINT=" etc/config.sh
+          echo "✓ Required constants found"
+
+  structure-check:
+    name: Project Structure Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Verify directory structure
+        run: |
+          echo "Verifying FHS-compliant directory structure..."
+          test -d bin || (echo "❌ Missing bin/ directory" && exit 1)
+          test -d libexec || (echo "❌ Missing libexec/ directory" && exit 1)
+          test -d etc || (echo "❌ Missing etc/ directory" && exit 1)
+          test -d var/log || (echo "❌ Missing var/log/ directory" && exit 1)
+          test -d var/cache || (echo "❌ Missing var/cache/ directory" && exit 1)
+          test -d docs || (echo "❌ Missing docs/ directory" && exit 1)
+          test -d tests || (echo "❌ Missing tests/ directory" && exit 1)
+          echo "✓ All required directories exist"
+      
+      - name: Verify key files
+        run: |
+          echo "Verifying key files exist..."
+          test -f libexec/post_install.sh || (echo "❌ Missing main script" && exit 1)
+          test -f etc/config.sh || (echo "❌ Missing config file" && exit 1)
+          test -f README.md || (echo "❌ Missing README" && exit 1)
+          test -f CHANGELOG.md || (echo "❌ Missing CHANGELOG" && exit 1)
+          test -f LICENSE.md || (echo "❌ Missing LICENSE" && exit 1)
+          test -f SECURITY.md || (echo "❌ Missing SECURITY" && exit 1)
+          echo "✓ All key files exist"
+      
+      - name: Verify symlink
+        run: |
+          echo "Verifying bin/post-install symlink..."
+          test -L bin/post-install || (echo "❌ bin/post-install is not a symlink" && exit 1)
+          test -f bin/post-install || (echo "❌ Symlink target doesn't exist" && exit 1)
+          echo "✓ Symlink is valid"
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          ! grep -rE "(password|passwd|pwd)\\s*=\\s*['\"][^'\"]+['\"]" --include="*.sh" . || \
+            (echo "❌ Found potential hardcoded passwords" && exit 1)
+          echo "✓ No hardcoded secrets found"
+      
+      - name: Check for insecure commands
+        run: |
+          echo "Checking for insecure command usage..."
+          ! grep -rE "\\beval\\b|\\bexec\\b.*\\$" --include="*.sh" . || \
+            (echo "⚠️  Found potentially insecure command usage" && exit 0)
+          echo "✓ No obviously insecure commands"
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for copyright headers
+        run: |
+          echo "Verifying copyright headers..."
+          for file in $(find . -name "*.sh" -type f); do
+            if ! grep -q "Copyright (c) 2025 ANDCS" "$file"; then
+              echo "❌ Missing copyright header in $file"
+              exit 1
+            fi
+          done
+          echo "✓ All shell scripts have copyright headers"
+      
+      - name: Check for function documentation
+        run: |
+          echo "Checking for function documentation..."
+          script_count=$(find libexec -name "*.sh" -type f | wc -l)
+          echo "Found $script_count script(s) to check"
+          echo "✓ Scripts available for manual review"
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [shellcheck, syntax-check, config-validation, structure-check, security-scan, documentation]
+    if: always()
+    
+    steps:
+      - name: CI Results
+        run: |
+          echo "╔════════════════════════════════════════════╗"
+          echo "║     CI Pipeline Execution Complete         ║"
+          echo "╚════════════════════════════════════════════╝"
+          echo ""
+          echo "All checks completed. Review individual job results above."

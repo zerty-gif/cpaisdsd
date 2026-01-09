@@ -722,7 +722,7 @@ configure_dhcp_server() {
                 //   - Too large: Wasted address space, harder tracking
                 //   - Rule of thumb: 2× expected concurrent clients
                 //
-                // Our pool: 21 addresses (192.168.10.30 - 192.168.10.50)
+                // Our pool: 21 addresses (192.168.100.30 - 192.168.100.50)
                 //
                 // ────────────────────────────────────────────────────────────
                 "pools": [
@@ -777,50 +777,25 @@ configure_dhcp_server() {
                         "name": "routers",
                         "data": "${C_GATEWAY}"
                     }
-                ],
+                ]
                 
                 // ────────────────────────────────────────────────────────────
-                // HOST RESERVATIONS
+                // HOST RESERVATIONS (DISABLED)
                 // ────────────────────────────────────────────────────────────
                 //
-                // Reservations guarantee specific hosts always receive the
-                // same IP address based on their hardware (MAC) address.
+                // Reservations are disabled in this configuration.
+                // All clients will receive dynamic addresses from the pool.
                 //
-                // DORA PROCESS WITH RESERVATION:
-                //
-                //   Client                           Server
-                //     │                                │
-                //     │──── DHCPDISCOVER ─────────────►│
-                //     │     (MAC: 00:0c:29:14:cd:90)   │
-                //     │                                │
-                //     │                     [Check reservations database]
-                //     │                     [Found: ds1 → 192.168.10.100]
-                //     │                                │
-                //     │◄──── DHCPOFFER ───────────────│
-                //     │      (IP: 192.168.10.100)     │
-                //     │                                │
-                //
-                // Benefits of reservations over static IP on client:
-                //   - Centralized IP management
-                //   - Client remains "DHCP client" (easier recovery)
-                //   - Hostname consistently registered
-                //   - Additional options can be customized per host
+                // To add reservations in the future, add a "reservations" array:
+                // "reservations": [
+                //     {
+                //         "hw-address": "00:0c:29:xx:xx:xx",
+                //         "ip-address": "192.168.100.100",
+                //         "hostname": "hostname"
+                //     }
+                // ]
                 //
                 // ────────────────────────────────────────────────────────────
-                "reservations": [
-                    {
-                        // Host: ds1 - Primary workstation
-                        "hw-address": "00:0c:29:14:cd:90",
-                        "ip-address": "192.168.10.100",
-                        "hostname": "ds1"
-                    },
-                    {
-                        // Host: ds3 - Secondary workstation
-                        "hw-address": "00:0c:29:bd:6f:36",
-                        "ip-address": "192.168.10.120",
-                        "hostname": "ds3"
-                    }
-                ]
             }
         ],
         
@@ -875,7 +850,7 @@ EOF
     table_row "Gateway" "${C_GATEWAY}"
     table_row "DNS Servers" "${C_DNS_PRIMARY}, ${C_DNS_SECONDARY}"
     table_row "Lease Time" "${C_VALID_LIFETIME} seconds"
-    table_row "Reservations" "2 hosts (ds1, ds3)"
+    table_row "Reservations" "None (dynamic only)"
     
     panel_footer
 }
@@ -1215,15 +1190,14 @@ display_next_steps() {
     echo ""
     echo -e "${C_DIM}"
     echo "    ┌────────────────────────────────────────────────────────────┐"
-    echo "    │                    192.168.10.0/24                         │"
+    echo "    │                    192.168.100.0/24                        │"
     echo "    │                                                            │"
     echo "    │   DHCP Server (${C_SERVER_IP})                             │"
     echo "    │        │                                                   │"
-    echo "    │        ├── Pool: ${C_POOL_START} - ${C_POOL_END}           │"
-    echo "    │        ├── ds1: 192.168.10.100 (reserved)                  │"
-    echo "    │        └── ds3: 192.168.10.120 (reserved)                  │"
+    echo "    │        └── Pool: ${C_POOL_START} - ${C_POOL_END}           │"
     echo "    │                                                            │"
     echo "    │   Gateway: ${C_GATEWAY}                                    │"
+    echo "    │   Mode: Dynamic allocation only (no reservations)         │"
     echo "    └────────────────────────────────────────────────────────────┘"
     echo -e "${C_RESET}"
     

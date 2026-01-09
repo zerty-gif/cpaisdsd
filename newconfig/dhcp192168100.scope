@@ -1,0 +1,183 @@
+#######################################
+# DHCP SCOPE CONFIGURATION FILE
+#######################################
+#
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║                     SCOPE: 192.168.100.0/24                               ║
+# ║                     Primary LAN Network                                   ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+#
+# DESCRIPTION:
+# ────────────────────────────────────────────────────────────────────────────
+# This scope file defines the DHCP configuration for the primary LAN network.
+# The DHCP server will listen on interface ens32 and serve IP addresses
+# from the 192.168.100.0/24 subnet to clients on this network segment.
+#
+# FILE FORMAT:
+# ────────────────────────────────────────────────────────────────────────────
+# - KEY=VALUE pairs (no spaces around the equals sign)
+# - Lines starting with # are treated as comments
+# - Empty lines are ignored
+# - All IP addresses must be valid IPv4 format (x.x.x.x)
+#
+# NETWORK TOPOLOGY:
+# ────────────────────────────────────────────────────────────────────────────
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                    192.168.100.0/24 Network                         │
+#   ├─────────────────────────────────────────────────────────────────────┤
+#   │                                                                     │
+#   │   [DHCP Server]                    [Gateway Router]                 │
+#   │   192.168.100.1                    192.168.100.254                  │
+#   │        │                                 │                          │
+#   │        └─────────────┬───────────────────┘                          │
+#   │                      │                                              │
+#   │              ┌───────┴───────┐                                      │
+#   │              │   Switch      │                                      │
+#   │              └───────┬───────┘                                      │
+#   │                      │                                              │
+#   │        ┌─────────────┼─────────────┐                                │
+#   │        │             │             │                                │
+#   │   [Client 1]    [Client 2]    [Client N]                            │
+#   │   .30-.50       .30-.50       .30-.50                               │
+#   │   (DHCP Pool)   (DHCP Pool)   (DHCP Pool)                           │
+#   │                                                                     │
+#   └─────────────────────────────────────────────────────────────────────┘
+#
+# REFERENCES:
+# ────────────────────────────────────────────────────────────────────────────
+# - RFC 2131: Dynamic Host Configuration Protocol
+# - RFC 2132: DHCP Options and BOOTP Vendor Extensions
+# - RFC 1918: Address Allocation for Private Internets
+#
+#######################################
+
+#######################################
+# INTERFACE CONFIGURATION
+#######################################
+#
+# INTERFACE: The network interface on which the DHCP server will listen
+#            for DHCP DISCOVER broadcasts from clients.
+#
+# IMPORTANT: This interface MUST have a static IP address configured.
+#            A DHCP server cannot be a DHCP client on the same interface!
+#
+# Common interface naming schemes:
+#   - eth0, eth1, ...       : Traditional naming
+#   - ens32, ens33, ...     : Predictable naming (systemd)
+#   - enp0s3, enp0s8, ...   : PCI-based naming
+#
+#######################################
+INTERFACE=ens32
+
+#######################################
+# NETWORK IDENTIFICATION
+#######################################
+#
+# NETWORK: The network address (network ID) for this subnet.
+#          This is the base address with all host bits set to 0.
+#
+# NETMASK: The subnet mask that defines network vs host portions.
+#          255.255.255.0 = /24 = 256 addresses (254 usable for hosts)
+#
+# Subnet Calculation Example:
+#   Network:  192.168.100.0
+#   Netmask:  255.255.255.0
+#   ─────────────────────────
+#   Binary:   11111111.11111111.11111111.00000000
+#   CIDR:     /24 (24 network bits, 8 host bits)
+#   Hosts:    2^8 - 2 = 254 usable addresses
+#   Range:    192.168.100.1 - 192.168.100.254
+#   Broadcast: 192.168.100.255
+#
+#######################################
+NETWORK=192.168.100.0
+NETMASK=255.255.255.0
+
+#######################################
+# DHCP ADDRESS POOL
+#######################################
+#
+# POOL_START: First IP address in the dynamic allocation pool
+# POOL_END:   Last IP address in the dynamic allocation pool
+#
+# DHCP ALLOCATION PROCESS (DORA):
+# ───────────────────────────────
+#   1. DISCOVER: Client broadcasts "I need an IP address"
+#   2. OFFER:    Server offers an IP from this pool
+#   3. REQUEST:  Client requests the offered IP
+#   4. ACK:      Server confirms the lease
+#
+# POOL SIZING CONSIDERATIONS:
+# ───────────────────────────
+#   - Too small: Address exhaustion during peak usage
+#   - Too large: Harder to track, wasted address space
+#   - Best practice: 2× expected concurrent clients
+#
+# This pool provides 21 addresses (.30 through .50)
+#
+#######################################
+POOL_START=192.168.100.30
+POOL_END=192.168.100.50
+
+#######################################
+# SERVER HOST ADDRESS
+#######################################
+#
+# HOST_ADDRESS: The IP address assigned to THIS DHCP server
+#               on this interface. This is the static IP that
+#               will be configured in /etc/network/interfaces.
+#
+# REQUIREMENTS:
+#   - Must be within the subnet range
+#   - Must be OUTSIDE the dynamic pool
+#   - Should be in a reserved range for infrastructure
+#
+#######################################
+HOST_ADDRESS=192.168.100.1
+
+#######################################
+# DEFAULT GATEWAY
+#######################################
+#
+# GATEWAY: The IP address of the default router for this subnet.
+#          Clients will use this as their default route for
+#          traffic destined outside the local network.
+#
+# DHCP OPTION 3 (Routers):
+#   RFC 2132 Section 3.5 specifies this option provides
+#   "a list of IP addresses for routers on the client's subnet"
+#
+# In most networks, this is the interface IP of the router
+# connected to this subnet segment.
+#
+#######################################
+GATEWAY=192.168.100.254
+
+#######################################
+# DNS SERVERS
+#######################################
+#
+# DNS_PRIMARY:   First DNS server for name resolution
+# DNS_SECONDARY: Fallback DNS server if primary is unavailable
+#
+# DHCP OPTION 6 (Domain Name Servers):
+#   RFC 2132 Section 3.8 specifies this option provides
+#   "a list of Domain Name System name servers available to the client"
+#
+# DNS SERVER SELECTION:
+# ─────────────────────
+#   Primary (192.168.100.1): Local DNS server for internal resolution
+#     - Resolves internal hostnames
+#     - Can provide split-horizon DNS
+#     - Caches queries for performance
+#
+#   Secondary (9.9.9.9): Quad9 public DNS
+#     - Provides malware domain blocking
+#     - DNSSEC validation enabled
+#     - Privacy-focused (no query logging)
+#     - Anycast for low latency
+#
+#######################################
+DNS_PRIMARY=192.168.100.1
+DNS_SECONDARY=9.9.9.9

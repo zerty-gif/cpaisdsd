@@ -1,0 +1,196 @@
+#######################################
+# DHCP SCOPE CONFIGURATION FILE
+#######################################
+#
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║                     SCOPE: 172.16.10.0/24                                 ║
+# ║                     Secondary LAN Network                                 ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+#
+# DESCRIPTION:
+# ────────────────────────────────────────────────────────────────────────────
+# This scope file defines the DHCP configuration for the secondary LAN network.
+# The DHCP server will listen on interface ens34 and serve IP addresses
+# from the 172.16.10.0/24 subnet to clients on this network segment.
+#
+# FILE FORMAT:
+# ────────────────────────────────────────────────────────────────────────────
+# - KEY=VALUE pairs (no spaces around the equals sign)
+# - Lines starting with # are treated as comments
+# - Empty lines are ignored
+# - All IP addresses must be valid IPv4 format (x.x.x.x)
+#
+# NETWORK TOPOLOGY:
+# ────────────────────────────────────────────────────────────────────────────
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                    172.16.10.0/24 Network                           │
+#   ├─────────────────────────────────────────────────────────────────────┤
+#   │                                                                     │
+#   │   [DHCP Server]                    [Gateway Router]                 │
+#   │   172.16.10.1                      172.16.10.254                    │
+#   │        │                                 │                          │
+#   │        └─────────────┬───────────────────┘                          │
+#   │                      │                                              │
+#   │              ┌───────┴───────┐                                      │
+#   │              │   Switch      │                                      │
+#   │              └───────┬───────┘                                      │
+#   │                      │                                              │
+#   │        ┌─────────────┼─────────────┐                                │
+#   │        │             │             │                                │
+#   │   [Client 1]    [Client 2]    [Client N]                            │
+#   │   .30-.50       .30-.50       .30-.50                               │
+#   │   (DHCP Pool)   (DHCP Pool)   (DHCP Pool)                           │
+#   │                                                                     │
+#   └─────────────────────────────────────────────────────────────────────┘
+#
+# RFC 1918 PRIVATE ADDRESS RANGES:
+# ────────────────────────────────────────────────────────────────────────────
+# The 172.16.0.0/12 range is one of three private IP address blocks:
+#   - 10.0.0.0/8      (10.0.0.0 - 10.255.255.255)     ~16 million addresses
+#   - 172.16.0.0/12   (172.16.0.0 - 172.31.255.255)   ~1 million addresses
+#   - 192.168.0.0/16  (192.168.0.0 - 192.168.255.255) ~65,000 addresses
+#
+# These addresses are not routable on the public Internet and are
+# ideal for internal network segments.
+#
+# REFERENCES:
+# ────────────────────────────────────────────────────────────────────────────
+# - RFC 2131: Dynamic Host Configuration Protocol
+# - RFC 2132: DHCP Options and BOOTP Vendor Extensions
+# - RFC 1918: Address Allocation for Private Internets
+#
+#######################################
+
+#######################################
+# INTERFACE CONFIGURATION
+#######################################
+#
+# INTERFACE: The network interface on which the DHCP server will listen
+#            for DHCP DISCOVER broadcasts from clients.
+#
+# This interface (ens34) represents the second network adapter,
+# connecting to a separate physical or virtual network segment.
+#
+# MULTI-HOMED SERVER CONFIGURATION:
+# ─────────────────────────────────
+# A server with multiple network interfaces is called "multi-homed".
+# Each interface can serve a different subnet, allowing one DHCP
+# server to provide addresses to multiple network segments.
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                      Multi-Homed DHCP Server                        │
+#   ├─────────────────────────────────────────────────────────────────────┤
+#   │                                                                     │
+#   │   ┌─────────────────┐                                               │
+#   │   │   DHCP Server   │                                               │
+#   │   │                 │                                               │
+#   │   │  ens32   ens34  │                                               │
+#   │   └───┬───────┬─────┘                                               │
+#   │       │       │                                                     │
+#   │       │       └──────────► 172.16.10.0/24 (This scope)              │
+#   │       │                                                             │
+#   │       └──────────────────► 192.168.100.0/24                         │
+#   │                                                                     │
+#   └─────────────────────────────────────────────────────────────────────┘
+#
+#######################################
+INTERFACE=ens34
+
+#######################################
+# NETWORK IDENTIFICATION
+#######################################
+#
+# NETWORK: The network address (network ID) for this subnet.
+#          172.16.10.0 is the base address for this /24 segment.
+#
+# NETMASK: The subnet mask (255.255.255.0 = /24)
+#
+# Subnet Calculation:
+#   Network:  172.16.10.0
+#   Netmask:  255.255.255.0
+#   ─────────────────────────
+#   CIDR:     /24 (24 network bits, 8 host bits)
+#   Hosts:    2^8 - 2 = 254 usable addresses
+#   Range:    172.16.10.1 - 172.16.10.254
+#   Broadcast: 172.16.10.255
+#
+#######################################
+NETWORK=172.16.10.0
+NETMASK=255.255.255.0
+
+#######################################
+# DHCP ADDRESS POOL
+#######################################
+#
+# POOL_START: First IP address in the dynamic allocation pool
+# POOL_END:   Last IP address in the dynamic allocation pool
+#
+# ADDRESS SPACE PLANNING:
+# ───────────────────────
+#   .1-.29    : Reserved for infrastructure devices
+#   .30-.50   : Dynamic DHCP pool (21 addresses)
+#   .51-.99   : Reserved for future expansion
+#   .100-.199 : Static reservations (if needed)
+#   .200-.253 : Network services
+#   .254      : Default gateway
+#   .255      : Broadcast (not usable)
+#
+# This pool provides 21 addresses (.30 through .50)
+#
+#######################################
+POOL_START=172.16.10.30
+POOL_END=172.16.10.50
+
+#######################################
+# SERVER HOST ADDRESS
+#######################################
+#
+# HOST_ADDRESS: The IP address assigned to THIS DHCP server
+#               on this interface (ens34).
+#
+# This address will be configured statically in
+# /etc/network/interfaces for the ens34 interface.
+#
+#######################################
+HOST_ADDRESS=172.16.10.1
+
+#######################################
+# DEFAULT GATEWAY
+#######################################
+#
+# GATEWAY: The IP address of the default router for this subnet.
+#
+# For this secondary network, traffic destined outside the
+# 172.16.10.0/24 network will be routed through 172.16.10.254.
+#
+# ROUTING CONSIDERATIONS:
+# ───────────────────────
+# If clients on this network need to reach the 192.168.100.0/24
+# network (or the Internet), the gateway router must have
+# appropriate routes configured.
+#
+#######################################
+GATEWAY=172.16.10.254
+
+#######################################
+# DNS SERVERS
+#######################################
+#
+# DNS_PRIMARY:   First DNS server (192.168.100.1)
+#                Points to the primary network's DNS server
+#                Allows unified name resolution across networks
+#
+# DNS_SECONDARY: Fallback DNS server (9.9.9.9 - Quad9)
+#                Provides security-filtered public DNS
+#
+# CROSS-NETWORK DNS:
+# ──────────────────
+# Using 192.168.100.1 as the primary DNS means clients on
+# this network will query the DNS server on the other network.
+# This requires proper routing between the networks, but
+# provides centralized DNS management.
+#
+#######################################
+DNS_PRIMARY=192.168.100.1
+DNS_SECONDARY=9.9.9.9
