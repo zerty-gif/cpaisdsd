@@ -313,8 +313,8 @@ def test_dns_resolution(zone_name: str):
     Failure Modes:
     - None.
     """
-    print(f"\n[*] Testing Resolution for ns1.{zone_name}...")
-    target = f"ns1.{zone_name}"
+    print(f"\n[*] Testing Resolution for dsd3.{zone_name}...")
+    target = f"dsd3.{zone_name}"
 
     try:
         ip = socket.gethostbyname(target)
